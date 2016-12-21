@@ -2,9 +2,7 @@ package main
 
 import (
 	"os"
-
 	"fmt"
-
 	"strings"
 
 	"github.com/caarlos0/spin"
