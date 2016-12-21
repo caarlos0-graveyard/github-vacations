@@ -1,0 +1,6 @@
+language: go
+go: 1.7.4
+after_success:
+  test ! -z "$TRAVIS_TAG" && wget -O - https://raw.githubusercontent.com/caarlos0/go-releaser/master/release | bash -s -- -u caarlos0 -r github-vacations -b github-vacations -m .
+notifications:
+  email: false
