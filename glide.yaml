@@ -1,0 +1,8 @@
+package: github.com/caarlos0/github-vacations
+import:
+- package: github.com/caarlos0/spin
+  version: ~1.0.0
+- package: github.com/google/go-github
+  subpackages:
+  - github
+- package: golang.org/x/oauth2
