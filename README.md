@@ -1,4 +1,5 @@
 # github-vacations
+
 Automagically ignore all notifications related to work when you are on vacations
 
 Just put the binary somewhere, export a `GITHUB_TOKEN` environment variable,
@@ -9,3 +10,10 @@ and put it in your crontab:
 ```
 
 Enjoy your vacations! 🏖
+
+## Install
+
+```console
+brew tap caarlos0/formulae
+brew install github-vacations
+```
