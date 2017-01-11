@@ -14,6 +14,5 @@ Enjoy your vacations! 🏖
 ## Install
 
 ```console
-brew tap caarlos0/formulae
-brew install github-vacations
+brew install caarlos0/tap/github-vacations
 ```
