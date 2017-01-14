@@ -2,3 +2,4 @@ repo: caarlos0/github-vacations
 binary_name: github-vacations
 brew:
   repo: caarlos0/homebrew-tap
+  folder: Fomula
