@@ -1,72 +1,37 @@
-package main
+// Package githubvacations contains functions that help you not work
+// when you are on vacations (or just don't want to).
+package githubvacations
 
 import (
-	"fmt"
-	"os"
+	"context"
 	"strings"
 
-	"github.com/caarlos0/spin"
 	"github.com/google/go-github/github"
-	"github.com/urfave/cli"
 	"golang.org/x/oauth2"
 )
 
-var version = "master"
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "github-vacations"
-	app.Usage = "Automagically ignore all notifications related to work when you are on vacations"
-	app.Version = version
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "org, o",
-			Usage: "Organization name to ignore",
-		},
-		cli.StringFlag{
-			Name:   "token, t",
-			EnvVar: "GITHUB_TOKEN",
-			Usage:  "GitHub token",
-		},
+// MarkWorkNotificationsAsRead checks your notifications from work and mark
+// them as read
+func MarkWorkNotificationsAsRead(token, org string) (count int, err error) {
+	var ctx = context.Background()
+	var client = github.NewClient(oauth2.NewClient(
+		ctx,
+		oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})),
+	)
+	notifications, _, err := client.Activity.ListNotifications(
+		ctx,
+		&github.NotificationListOptions{},
+	)
+	if err != nil {
+		return
 	}
-	app.Action = func(c *cli.Context) error {
-		var token = c.String("token")
-		var org = strings.ToLower(c.String("org"))
-		if token == "" {
-			return cli.NewExitError("missing GITHUB_TOKEN", 1)
+	for _, notification := range notifications {
+		var owner = *notification.Repository.Owner.Login
+		if strings.ToLower(owner) == org {
+			client.Activity.DeleteThreadSubscription(ctx, *notification.ID)
+			client.Activity.MarkThreadRead(ctx, *notification.ID)
+			count++
 		}
-		if org == "" {
-			return cli.NewExitError("missing organization to ignore", 1)
-		}
-		var spin = spin.New("%s Helping you to not work...")
-		spin.Start()
-
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		tc := oauth2.NewClient(oauth2.NoContext, ts)
-		client := github.NewClient(tc)
-		notifications, _, err := client.Activity.ListNotifications(
-			&github.NotificationListOptions{},
-		)
-		if err != nil {
-			spin.Stop()
-			return cli.NewExitError(err.Error(), 1)
-		}
-		var count int
-		for _, notification := range notifications {
-			owner := *notification.Repository.Owner.Login
-			if strings.ToLower(owner) == org {
-				client.Activity.DeleteThreadSubscription(*notification.ID)
-				client.Activity.MarkThreadRead(*notification.ID)
-				count++
-			}
-		}
-		spin.Stop()
-		fmt.Println(count, "notifications marked as read")
-		return nil
 	}
-	if err := app.Run(os.Args); err != nil {
-		panic(err)
-	}
+	return
 }
