@@ -28,8 +28,12 @@ func MarkWorkNotificationsAsRead(token, org string) (count int, err error) {
 	for _, notification := range notifications {
 		var owner = *notification.Repository.Owner.Login
 		if strings.ToLower(owner) == org {
-			client.Activity.DeleteThreadSubscription(ctx, *notification.ID)
-			client.Activity.MarkThreadRead(ctx, *notification.ID)
+			if _, err = client.Activity.DeleteThreadSubscription(ctx, *notification.ID); err != nil {
+				return
+			}
+			if _, err = client.Activity.MarkThreadRead(ctx, *notification.ID); err != nil {
+				return
+			}
 			count++
 		}
 	}

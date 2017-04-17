@@ -42,7 +42,11 @@ func main() {
 		count, err := githubvacations.MarkWorkNotificationsAsRead(token, org)
 		spin.Stop()
 		if err != nil {
-			return cli.NewExitError("failed to mark notifications as read", 1)
+			var msg = "failed to mark notifications as read"
+			if count > 0 {
+				msg = fmt.Sprintf("%v notifications marked as read, others failed", count)
+			}
+			return cli.NewExitError(msg, 1)
 		}
 		fmt.Printf("%v notifications marked as read", count)
 		return nil
