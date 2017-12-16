@@ -1,17 +1,8 @@
-
-[[dependencies]]
-  name = "github.com/caarlos0/spin"
-  version = "^1.0.0"
-
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/google/go-github"
 
-[[dependencies]]
-  name = "github.com/urfave/cli"
-  version = "^1.19.1"
-
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "golang.org/x/oauth2"
 
