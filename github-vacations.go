@@ -37,9 +37,9 @@ func MarkWorkNotificationsAsRead(token, org string) ([]Notification, error) {
 			if _, err = client.Activity.DeleteThreadSubscription(ctx, notification.GetID()); err != nil {
 				return result, err
 			}
-			// if _, err = client.Activity.MarkThreadRead(ctx, notification.GetID()); err != nil {
-			// 	return result, err
-			// }
+			if _, err = client.Activity.MarkThreadRead(ctx, notification.GetID()); err != nil {
+				return result, err
+			}
 			var url = notification.GetSubject().GetURL()
 			for old, new := range map[string]string{
 				"api.github.com": "github.com",
