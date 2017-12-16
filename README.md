@@ -19,6 +19,11 @@ and put it in your crontab:
 * * * * * /path/to/github-vacations -t My-Github-Token -o SomeOrg > /dev/null 2>&1
 ```
 
+Your notifications will be stored on `%HOME/.vacations.db`. You can read them
+when you get back by using `github-vacations read`.
+
+![screenshot](screen.png)
+
 Enjoy your vacations! 🏖
 
 ## Install

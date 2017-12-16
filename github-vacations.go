@@ -10,9 +10,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Notification from github
+type Notification struct {
+	URL, Title, Repo string
+}
+
 // MarkWorkNotificationsAsRead checks your notifications from work and mark
 // them as read
-func MarkWorkNotificationsAsRead(token, org string) (count int, err error) {
+func MarkWorkNotificationsAsRead(token, org string) ([]Notification, error) {
+	var result []Notification
 	var ctx = context.Background()
 	var client = github.NewClient(oauth2.NewClient(
 		ctx,
@@ -23,19 +29,31 @@ func MarkWorkNotificationsAsRead(token, org string) (count int, err error) {
 		&github.NotificationListOptions{},
 	)
 	if err != nil {
-		return
+		return result, err
 	}
 	for _, notification := range notifications {
-		var owner = *notification.Repository.Owner.Login
-		if strings.ToLower(owner) == org {
-			if _, err = client.Activity.DeleteThreadSubscription(ctx, *notification.ID); err != nil {
-				return
+		var owner = notification.GetRepository().GetOwner().GetLogin()
+		if strings.ToLower(owner) == strings.ToLower(org) {
+			if _, err = client.Activity.DeleteThreadSubscription(ctx, notification.GetID()); err != nil {
+				return result, err
 			}
-			if _, err = client.Activity.MarkThreadRead(ctx, *notification.ID); err != nil {
-				return
+			if _, err = client.Activity.MarkThreadRead(ctx, notification.GetID()); err != nil {
+				return result, err
 			}
-			count++
+			var url = notification.GetSubject().GetURL()
+			for old, new := range map[string]string{
+				"api.github.com": "github.com",
+				"/repos/":        "/",
+				"/pulls/":        "/pull/",
+			} {
+				url = strings.Replace(url, old, new, 1)
+			}
+			result = append(result, Notification{
+				URL:   url,
+				Title: notification.GetSubject().GetTitle(),
+				Repo:  notification.GetRepository().GetFullName(),
+			})
 		}
 	}
-	return
+	return result, err
 }
