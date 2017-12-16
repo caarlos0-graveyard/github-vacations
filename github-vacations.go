@@ -12,7 +12,7 @@ import (
 
 // Notification from github
 type Notification struct {
-	URL, Title, Repo, Reason string
+	URL, Title, Repo string
 }
 
 // MarkWorkNotificationsAsRead checks your notifications from work and mark
@@ -49,10 +49,9 @@ func MarkWorkNotificationsAsRead(token, org string) ([]Notification, error) {
 				url = strings.Replace(url, old, new, 1)
 			}
 			result = append(result, Notification{
-				URL:    url,
-				Title:  notification.GetSubject().GetTitle(),
-				Repo:   notification.GetRepository().GetFullName(),
-				Reason: notification.GetReason(),
+				URL:   url,
+				Title: notification.GetSubject().GetTitle(),
+				Repo:  notification.GetRepository().GetFullName(),
 			})
 		}
 	}

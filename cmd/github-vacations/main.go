@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -17,6 +18,8 @@ func init() {
 
 const (
 	version = "master"
+	// TODO: this is a hack because printf won't accept `\e`
+	backslashE = string(0x1b)
 )
 
 var (
@@ -43,29 +46,41 @@ func main() {
 }
 
 func readNotification(path string) {
+	log.Info("checking your notifications...")
 	db, err := bolt.Open(os.ExpandEnv(path), 0600, nil)
 	kingpin.FatalIfError(err, "%v")
 	if err := db.View(func(tx *bolt.Tx) error {
 		var bucket = tx.Bucket([]byte("notifications"))
 		if bucket == nil {
-			log.Info("0 notifications to read")
+			log.Warn("0 notifications to read")
 			return nil
 		}
-
-		bucket.ForEach(func(url, title []byte) error {
-			printLink(title, url)
+		var notifications = map[string][]lib.Notification{}
+		bucket.ForEach(func(url, encoded []byte) error {
+			var notification lib.Notification
+			if err := json.Unmarshal(encoded, &notification); err != nil {
+				return err
+			}
+			notifications[notification.Repo] = append(notifications[notification.Repo], notification)
 			return nil
 		})
+		for repo, repoNotifications := range notifications {
+			fmt.Printf("\n")
+			cli.Default.Padding = 3
+			log.Infof("%s:", repo)
+			cli.Default.Padding = 6
+			for _, n := range repoNotifications {
+				log.Infof(
+					"%s]8;;%s\a%s%s]8;;\a",
+					backslashE, n.URL, n.Title, backslashE,
+				)
+			}
+			cli.Default.Padding = 3
+		}
 		return nil
 	}); err != nil {
 		kingpin.FatalIfError(err, "%v")
 	}
-}
-
-func printLink(title, url []byte) {
-	// TODO: this is a hack because printf won't accept `\e`
-	var e = string(0x1b)
-	log.Infof("%s]8;;%s\a%s%s]8;;\a", e, url, title, e)
 }
 
 func checkNotifications(path, org, token string) {
@@ -84,7 +99,11 @@ func checkNotifications(path, org, token string) {
 			return err
 		}
 		for _, notification := range notifications {
-			bucket.Put([]byte(notification.URL), []byte(notification.Title))
+			encoded, err := json.Marshal(notification)
+			if err != nil {
+				return err
+			}
+			bucket.Put([]byte(notification.URL), encoded)
 		}
 		return nil
 	}); err != nil {
