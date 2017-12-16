@@ -48,7 +48,10 @@ func main() {
 func readNotification(path string) {
 	log.Info("checking your notifications...")
 	db, err := bolt.Open(os.ExpandEnv(path), 0600, nil)
-	kingpin.FatalIfError(err, "%v")
+	if err != nil {
+		log.WithError(err).Fatal("failed to open database")
+	}
+	defer closeDB(db)
 	if err := db.View(func(tx *bolt.Tx) error {
 		var bucket = tx.Bucket([]byte("notifications"))
 		if bucket == nil {
@@ -56,14 +59,16 @@ func readNotification(path string) {
 			return nil
 		}
 		var notifications = map[string][]lib.Notification{}
-		bucket.ForEach(func(url, encoded []byte) error {
+		if err := bucket.ForEach(func(url, encoded []byte) error {
 			var notification lib.Notification
 			if err := json.Unmarshal(encoded, &notification); err != nil {
 				return err
 			}
 			notifications[notification.Repo] = append(notifications[notification.Repo], notification)
 			return nil
-		})
+		}); err != nil {
+			log.WithError(err).Fatal("failed to read bucket")
+		}
 		for repo, repoNotifications := range notifications {
 			fmt.Printf("\n")
 			cli.Default.Padding = 3
@@ -79,18 +84,22 @@ func readNotification(path string) {
 		}
 		return nil
 	}); err != nil {
-		kingpin.FatalIfError(err, "%v")
+		log.WithError(err).Fatal("failed to read database")
 	}
 }
 
 func checkNotifications(path, org, token string) {
 	log.Info("helping you not to work...")
 	db, err := bolt.Open(os.ExpandEnv(path), 0600, nil)
-	kingpin.FatalIfError(err, "%v")
-	defer db.Close()
+	if err != nil {
+		log.WithError(err).Fatal("failed to open database")
+	}
+	defer closeDB(db)
 
 	notifications, err := lib.MarkWorkNotificationsAsRead(token, org)
-	kingpin.FatalIfError(err, "%v")
+	if err != nil {
+		log.WithError(err).Fatal("failed check your notifications")
+	}
 	log.Infof("%d %s notifications mark as read", len(notifications), org)
 
 	if err := db.Update(func(tx *bolt.Tx) error {
@@ -103,11 +112,19 @@ func checkNotifications(path, org, token string) {
 			if err != nil {
 				return err
 			}
-			bucket.Put([]byte(notification.URL), encoded)
+			if err := bucket.Put([]byte(notification.URL), encoded); err != nil {
+				return err
+			}
 		}
 		return nil
 	}); err != nil {
-		kingpin.FatalIfError(err, "%v")
+		log.WithError(err).Fatal("failed to store your notifications")
 	}
 	log.Infof("notifications stored on %s", path)
+}
+
+func closeDB(db *bolt.DB) {
+	if err := db.Close(); err != nil {
+		log.WithError(err).Error("failed to close db")
+	}
 }
