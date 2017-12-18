@@ -10,6 +10,7 @@ import (
 	"github.com/apex/log/handlers/cli"
 	"github.com/boltdb/bolt"
 	lib "github.com/caarlos0/github-vacations"
+	"github.com/fatih/color"
 )
 
 func init() {
@@ -46,7 +47,6 @@ func main() {
 }
 
 func readNotification(path string) {
-	log.Info("checking your notifications...")
 	db, err := bolt.Open(os.ExpandEnv(path), 0600, nil)
 	if err != nil {
 		log.WithError(err).Fatal("failed to open database")
@@ -59,16 +59,20 @@ func readNotification(path string) {
 			return nil
 		}
 		var notifications = map[string][]lib.Notification{}
+		var count int
 		if err := bucket.ForEach(func(url, encoded []byte) error {
 			var notification lib.Notification
 			if err := json.Unmarshal(encoded, &notification); err != nil {
 				return err
 			}
+			count++
 			notifications[notification.Repo] = append(notifications[notification.Repo], notification)
 			return nil
 		}); err != nil {
 			log.WithError(err).Fatal("failed to read bucket")
 		}
+		var bold = color.New(color.Bold)
+		log.Infof(bold.Sprintf("you have %d notifications in %d repositories!", count, len(notifications)))
 		for repo, repoNotifications := range notifications {
 			fmt.Printf("\n")
 			cli.Default.Padding = 3
